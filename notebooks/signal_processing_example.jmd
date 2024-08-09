@@ -1,0 +1,290 @@
+# Introduction
+
+This notebook provides a working minimal example of processing a physiological signal (i.e. raw EEG signal data from a 61 electrode array) and computing complexity measures on the signal.
+
+# Set-Up
+
+## Loading Package Environment
+
+Activating and instantiating Julia environment:
+
+```julia
+using DrWatson
+@quickactivate "JuliaOpenPhysiologicalDSP"
+
+using Pkg
+Pkg.instantiate()
+```
+
+Loading required packages:
+
+```julia
+using CairoMakie
+using ComplexityMeasures
+using CSV
+using DSP
+using DataFrames
+using MAT
+using TopoPlots
+
+# themeing
+ENV["BGCOLOR"] = "white"
+using MakieThemeing
+```
+
+## Defining Some Helper Functions
+
+A function to load `.fdt` files (more information on this type [here](https://eeglab.org/tutorials/ConceptsGuide/Data_Structures.html)):
+
+```julia
+"""
+References for creating this parser come from here:
+
+https://sccn.ucsd.edu/wiki/Makoto%27s_useful_EEGLAB_code#How_to_load_EEGLAB_.set_and_.fdt_files_without_using_EEGLAB_.2805.2F09.2F2020_updated.29
+"""
+function fdt_parser(fdt_file, mat_file)
+    open(fdt_file) do io
+        read!(
+            io,
+            Array{Float32}(undef, (Int(mat_file["nbchan"]), Int(mat_file["pnts"]))),
+        )
+    end
+end
+```
+
+# Loading Data for First Session of Two Subjects
+
+Setting paths to session 1 data for two subjects:
+
+```julia
+sub_1_ses_1_path = datadir("exp_raw", "sub-01", "ses-1", "eeg")
+sub_2_ses_1_path = datadir("exp_raw", "sub-02", "ses-1", "eeg")
+```
+
+Loading data for subjects:
+
+```julia
+sub_1_mat_file = matread(joinpath(sub_1_ses_1_path, "sub-01_ses-1_task-eyesclosed_eeg.set"))
+sub_2_mat_file = matread(joinpath(sub_2_ses_1_path, "sub-02_ses-1_task-eyesclosed_eeg.set"))
+
+sub_1_data = fdt_parser(joinpath(sub_1_ses_1_path, "sub-01_ses-1_task-eyesclosed_eeg.fdt"), sub_1_mat_file)
+sub_2_data = fdt_parser(joinpath(sub_2_ses_1_path, "sub-02_ses-1_task-eyesclosed_eeg.fdt"), sub_2_mat_file)
+
+sub_1_electrodes = CSV.read(joinpath(sub_1_ses_1_path, "sub-01_ses-1_electrodes.tsv"), DataFrame)
+sub_2_electrodes = CSV.read(joinpath(sub_2_ses_1_path, "sub-02_ses-1_electrodes.tsv"), DataFrame)
+```
+
+# Visualizing Electrode Positions
+
+Creating a general topographic layout of the EEG electrodes for subjects in this dataset:
+
+```julia
+pts = [Point2(sub_1_electrodes.y[i], sub_1_electrodes.x[i]) for i in 1:61]
+pts = convert(Vector{Point{2, Float32}}, pts)
+
+fig = eeg_topoplot(
+    ones(61),
+    sub_1_electrodes.name,
+    positions = pts,
+    interpolation = NullInterpolator(),
+    label_scatter =
+        (
+            markersize=8,
+            color = :black
+        ),
+    axis =
+        (
+            type=Axis,
+            title = "61-Lead Electrode Array Layout",
+            aspect= DataAspect(),
+            leftspinevisible = false,
+            rightspinevisible = false,
+            topspinevisible = false,
+            bottomspinevisible = false,
+            xgridvisible = false,
+            ygridvisible = false,
+            xminorgridvisible = false,
+            yminorgridvisible = false,
+            xminorticksvisible = false,
+            yminorticksvisible = false,
+            xticksvisible = false,
+            yticksvisible = false,
+            xticklabelsvisible = false,
+            yticklabelsvisible = false,
+        ),
+    labels = sub_1_electrodes.name,
+    label_text =
+        (;
+            fontsize = 8,
+            offset = (-3, 0)
+        ),
+)
+
+save(plotsdir("eeg_electrode_layout.png"), fig)
+
+fig # returning the figure displays it
+```
+
+# Displaying Raw Signal of 1-Channel for 2 Subjects
+
+Here, we'll display the raw electrical signal recorded for two subjects at one electrode channel (specifically the channel, "Fp1"):
+
+```julia
+fig, axs = axesgrid(2, 1;
+    size = (1200, 800), xlabels = "Time (sec)", sharex = true,
+    ylabels = "Voltage (μV)",
+)
+
+x = range(0.002, 300; step = 0.002) # can we obtain this from the data?
+lines!(axs[1], x, sub_1_data[1, :])
+lines!(axs[2], x, sub_2_data[1, :], color = Cycled(2))
+
+axs[1].title = "Subject 1 Raw Signal (Freq: 500 Hz)"
+axs[2].title = "Subject 2 Raw Signal (Freq: 500 Hz)"
+
+save(plotsdir("single_channel_raw_timeseris.png"), fig)
+
+fig
+```
+
+# Displaying Power Bands for Brain Waves
+
+Here, we compute the Welch Periodogram for two subjects at one electrode channel (specifically the channel, "Fp1"):
+
+```julia
+fig, axs = axesgrid(5, 2;
+   size = (1400, 1200), fontsize = 20, ylabels = "Power",
+   xlabels = "Frequency (Hz)", sharex = false, titles = ["Subject 1", "Subject 2"],
+)
+
+fs = 500 # Sampling Frequency
+labels = ["δ", "θ", "α", "β", "γ"]
+
+for (subj_idx, data) in enumerate([sub_1_data, sub_2_data])
+    s = welch_pgram(data[1, :], fs=fs)
+
+    f = s.freq
+    p = s.power
+
+    delta = findall(x -> x>=0 && x<4, f);
+    theta = findall(x -> x>=4 && x<8, f);
+    alpha = findall(x -> x>=8 && x<12, f);
+    beta = findall(x -> x>=12 && x<30, f);
+    gamma = findall(x -> x>=30 && x<200, f);
+
+    bands = [delta[50:end], theta, alpha, beta, gamma]
+
+    for (idx, band) in enumerate(bands)
+        ax = axs[idx, subj_idx]
+        lines!(ax, f[band], p[band]; color = Cycled(idx))
+        textbox!(ax, "$(labels[idx])-band")
+    end
+end
+
+figuretitle!(fig, "Power Band Frequencies", fontsize = 24)
+
+save(plotsdir("single_channel_power_band_segments.png"), fig)
+
+fig
+```
+
+# Display Brain Wave Frequencies over Time
+
+This constructs a digital filter using a Bandpass response and nth-order Butterworth design and segments out each brain wave frequency over time:
+
+```julia
+delta_range = [1, 4]
+theta_range = [4, 8]
+alpha_range = [8, 12]
+beta_range = [12, 30]
+gamma_range = [30, 200]
+
+fig = Figure(
+    size = (1200, 1400),
+    fontsize = 20
+);
+
+
+fs = 500 # Sampling Frequency
+for (subj_idx, data) in enumerate([sub_1_data, sub_2_data])
+
+    for (idx, r) in enumerate([delta_range, theta_range, alpha_range, beta_range, gamma_range])
+        if r[1] > 0
+            Ws = (r[1] - 0.5, r[2] + .5)./(fs/2)
+        else
+            Ws = (0.5, r[2] + .5)./(fs/2)
+        end
+        Wp = (r[1], r[2])./(fs/2)
+        Rp = 3  # Passband ripple
+        Rs = 40 # Stopband attenuation
+
+        n, Wn = buttord(Wp, Ws, Rp, Rs)
+
+        ax = CairoMakie.Axis(
+            fig[idx, subj_idx],
+        )
+
+        btr_band_filt = digitalfilter(Bandpass(r[1], r[2]; fs = fs), Butterworth(n))
+        signal = filt(btr_band_filt, data[1, :]);
+
+        lines!(ax, range(0.002, 10; step = 0.002), signal[1001:6000]);
+        ax.title = L"%$(labels[idx])\text{-Band}"
+        ax.ylabel = "Frequency (Hz)"
+        if idx == 5
+            ax.xlabel = "Time (Seconds)"
+        end
+    end
+end
+
+Label(fig[:, :, Top()], "Brain Wave Frequencies\nSubject 1 (L) and Subject 2 (R)\n\n", fontsize = 30)
+
+save(plotsdir("single_channel_brain_wave_frequencies.png"), fig)
+
+fig
+```
+
+# Complexity Measures for the Two Signals
+
+Here, we estimate some complexity measures typically used in physiological signal processing. The higher the measure, the more "complex" or "irregular" the signal.
+We will compute a couple such measures, normalize them to their maximum possible value, and then present them all as a color map.
+
+For some measures it is required to perform a delay embedding, for which an optimal delay time is required.
+DelayEmbeddings.jl, another package from DynamicalSystems.jl, offers functionality for finding than optimal delay time.
+
+```julia
+using ComplexityMeasures.DelayEmbeddings: estimate_delay
+# subsample for quicker estimation (expensive computations!)
+ss = 5
+# TODO: Ask George about why channel 2 for subject 2 was chosen
+x, y = sub_1_data[1, 1:ss:end], sub_2_data[2, 1:ss:end]
+
+τx, τy = [estimate_delay(s, "mi_min", 1:100) for s in (x, y)]
+
+measures = (
+    (x, τ) -> entropy_normalized(OrdinalPatterns(; m = 3, τ), x),
+    (x, τ) -> entropy_normalized(OrdinalPatterns(; m = 4, τ), x),
+    (x, τ) -> entropy_normalized(PowerSpectrum(), x),
+    (x, τ) -> complexity_normalized(SampleEntropy(x; m = 2, τ), x),
+)
+mnames = ["PermEnt-3", "PermEnt-4", "SpectEnt", "SampEnt"]
+
+m = zeros(2, length(measures))
+for (i, s, τ) in zip(1:2, (x, y), (τx, τy))
+    for (j, f) in enumerate(measures)
+        m[i, j] = f(s, τ)
+    end
+end
+```
+
+We can now visualize this
+
+```julia
+fig, ax, hm = heatmap(m; colorrange = (0, 1))
+ax.xticks = (1:2, ["Subject 1", "Subject 2"])
+ax.yticks = (1:length(measures), mnames)
+cb = Colorbar(fig[1,2], hm; ticks = (0:0.2:1), label = "complexity (normalized)")
+
+save(plotsdir("complexity_measures_heatmap.png"), fig)
+
+fig
+```
