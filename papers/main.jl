@@ -104,8 +104,39 @@ fig
 
 
 # %%
+using DrWatson
+@quickactivate "JuliaOpenPhysiologicalDSP"
 
-using ComplexityMeasures, DelayEmbeddings
+using ComplexityMeasures
+using DelayEmbeddings
+using NeuroAnalyzer
+
+function decompose_eeg(set_file)
+
+    eeg = import_set(set_file);
+
+    NeuroAnalyzer.filter!(eeg, fprototype=:fir, ftype=:hp, cutoff=0.5, ch = eeg.locs[!, 1])
+
+    s, bn, bf = bpsplit(eeg, ch = eeg.locs[!, 1])
+
+    channel = 2
+
+    delta = s[1, channel, 1:20*sr(eeg), 1]
+    theta = s[2, channel, 1:20*sr(eeg), 1]
+    alpha = s[3, channel, 1:20*sr(eeg), 1]
+    beta = s[6, channel, 1:20*sr(eeg), 1]
+    gamma = s[9, channel, 1:20*sr(eeg), 1]
+
+    signal = [delta, theta, alpha, beta, gamma]
+
+    return signal
+
+end
+
+sub_1_ses_1 = datadir("exp_raw", "sub-01", "ses-1", "eeg", "sub-01_ses-1_task-eyesopen_eeg.set");
+sub_2_ses_1 = datadir("exp_raw", "sub-02", "ses-1", "eeg", "sub-02_ses-1_task-eyesopen_eeg.set");
+
+signal_sub_1, signal_sub_2 = decompose_eeg.([sub_1_ses_1, sub_2_ses_1]);
 
 measures = (
     (x, τ) -> entropy_normalized(OrdinalPatterns(; m = 3, τ), x),
@@ -116,27 +147,25 @@ measures = (
 
 mnames = ["Perm-3", "Wavelet", "Spectral", "Sample", "ReverseD"]
 
-
 fig, axs = axesgrid(1, 2; sharex = true, sharey = true,
     size = (700, 200), ylabels = "complexity",
     titles = ["Subject $i" for i in 1:2],
 )
 
+bands_idxs = [1, 2, 3, 4, 5]
+band_names = ["δ", "θ", "α", "β", "γ"]
 
-bands_idxs = [1, 4, 5]
-band_names = ["F", "α", "β"]
-
-for (j, ts) in enumerate((signalsx, signalsy))
+for (j, ts) in enumerate((signal_sub_1, signal_sub_2))
     ax = axs[j]
     for (k, m) in enumerate(measures)
         for (n, i) in enumerate(bands_idxs)
-        s = ts[i]
-        τ = estimate_delay(s, "mi_min", 1:100)
-        spacing = 1/(length(bands_idxs)+1)
-        q = m(s, τ)
-        loc = k*1 + (n - 1)*spacing
-        barplot!(ax, loc, q; width = spacing, color = Cycled(n))
-        text!(ax, loc, q; text = band_names[n], align = (:center, :bottom))
+            s = ts[i]
+            τ = estimate_delay(s, "mi_min", 1:100)
+            spacing = 1/(length(bands_idxs)+1)
+            q = m(s, τ)
+            loc = k*1 + (n - 1)*spacing
+            barplot!(ax, loc, q; width = spacing, color = Cycled(n))
+            text!(ax, loc, q; text = band_names[n], align = (:center, :bottom))
         end
     end
     ax.xticks = (1:length(mnames), mnames)
