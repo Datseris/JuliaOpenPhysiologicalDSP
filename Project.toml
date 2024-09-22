@@ -2,22 +2,18 @@ name = "JuliaOpenPhysiologicalDSP"
 authors = ["George Datseris", "Jacob Zelko"]
 
 [deps]
-CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 ComplexityMeasures = "ab4b797d-85ee-42ba-b621-05d793b346a2"
-DSP = "717857b8-e6f2-59f4-9121-6e50c889abd2"
-DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 DelayEmbeddings = "5732040d-69e3-5649-938a-b6b4f237613f"
 DrWatson = "634d3b9d-ee7a-5ddf-bec9-22491ea816e1"
-FractalDimensions = "4665ce21-e117-4649-aed8-08bbe5ccbead"
-MAT = "23992714-dd62-5051-b70f-ba57cb901cac"
 Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
 MakieThemeing = "24dc64cf-9d0d-406f-af0b-13a4c1186bb2"
-SignalDecomposition = "11a47235-7b84-4c7c-b885-fc3e2a9cf955"
+NeuroAnalyzer = "b40dcafa-b65c-47ad-a230-3174ba5cadd1"
 TimeseriesSurrogates = "c804724b-8c18-5caa-8579-6025a0767c70"
-TopoPlots = "2bdbdf9c-dbd8-403f-947b-1a4e0dd41a7a"
-Weave = "44d3d7a6-8a23-5bf8-98c5-b353f8df5ec9"
 
 [compat]
 DrWatson = "2.15.0"
 julia = "1.9"
+
+[extras]
+FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
