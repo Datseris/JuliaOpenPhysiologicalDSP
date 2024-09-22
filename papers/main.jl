@@ -4,7 +4,6 @@ using DrWatson
 using CairoMakie
 using ComplexityMeasures
 using DelayEmbeddings
-using Makie
 using NeuroAnalyzer
 
 ENV["BGCOLOR"] = "white"
