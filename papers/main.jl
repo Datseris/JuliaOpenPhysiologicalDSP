@@ -113,23 +113,17 @@ using NeuroAnalyzer
 
 function decompose_eeg(set_file)
 
+function decompose_eeg(set_file; channel = 2, time = 20)
     eeg = import_set(set_file);
-
     NeuroAnalyzer.filter!(eeg, fprototype=:fir, ftype=:hp, cutoff=0.5, ch = eeg.locs[!, 1])
+    s, _, _ = bpsplit(eeg, ch = eeg.locs[!, 1])
 
-    s, bn, bf = bpsplit(eeg, ch = eeg.locs[!, 1])
-
-    channel = 2
-
-    delta = s[1, channel, 1:20*sr(eeg), 1]
-    theta = s[2, channel, 1:20*sr(eeg), 1]
-    alpha = s[3, channel, 1:20*sr(eeg), 1]
-    beta = s[6, channel, 1:20*sr(eeg), 1]
-    gamma = s[9, channel, 1:20*sr(eeg), 1]
-
-    signal = [delta, theta, alpha, beta, gamma]
-
-    return signal
+    full = eeg.data[2, 1:time*sr(eeg), 1]
+    delta = s[1, channel, 1:time*sr(eeg), 1]
+    theta = s[2, channel, 1:time*sr(eeg), 1]
+    alpha = s[3, channel, 1:time*sr(eeg), 1]
+    beta = s[6, channel, 1:time*sr(eeg), 1]
+    gamma = s[9, channel, 1:time*sr(eeg), 1]
 
 end
 
