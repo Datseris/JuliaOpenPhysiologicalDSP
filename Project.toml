@@ -8,3 +8,6 @@ DelayEmbeddings = "5732040d-69e3-5649-938a-b6b4f237613f"
 DrWatson = "634d3b9d-ee7a-5ddf-bec9-22491ea816e1"
 MakieThemeing = "24dc64cf-9d0d-406f-af0b-13a4c1186bb2"
 NeuroAnalyzer = "b40dcafa-b65c-47ad-a230-3174ba5cadd1"
+
+[compat]
+julia = "1.10"
