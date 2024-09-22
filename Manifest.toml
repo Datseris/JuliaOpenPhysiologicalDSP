@@ -527,7 +527,7 @@ version = "1.1.1+0"
 [[deps.ComplexityMeasures]]
 deps = ["Combinatorics", "DelayEmbeddings", "Distances", "FFTW", "LinearAlgebra", "Neighborhood", "QuadGK", "Random", "Reexport", "SparseArrays", "SpecialFunctions", "StateSpaceSets", "StaticArrays", "Statistics", "StatsBase", "StatsFuns", "Wavelets"]
 git-tree-sha1 = "a98828c064cae4cb2498b2bdb6aa6cd47e0bab61"
-repo-rev = "compathelper/new_version/2024-09-21-13-15-47-815-03489658592"
+repo-rev = "main"
 repo-url = "https://github.com/JuliaDynamics/ComplexityMeasures.jl.git"
 uuid = "ab4b797d-85ee-42ba-b621-05d793b346a2"
 version = "3.7.0"

@@ -1,5 +1,9 @@
+authors = ["George Datseris", "Jacob S. Zelko"]
 name = "JuliaOpenPhysiologicalDSP"
-authors = ["George Datseris", "Jacob Zelko"]
+
+[compat]
+DrWatson = "2.15.0"
+julia = "1.9"
 
 [deps]
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
@@ -11,9 +15,3 @@ MakieThemeing = "24dc64cf-9d0d-406f-af0b-13a4c1186bb2"
 NeuroAnalyzer = "b40dcafa-b65c-47ad-a230-3174ba5cadd1"
 TimeseriesSurrogates = "c804724b-8c18-5caa-8579-6025a0767c70"
 
-[compat]
-DrWatson = "2.15.0"
-julia = "1.9"
-
-[extras]
-FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
