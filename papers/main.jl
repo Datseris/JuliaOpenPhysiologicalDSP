@@ -125,6 +125,7 @@ function decompose_eeg(set_file; channel = 2, time = 20)
     beta = s[6, channel, 1:time*sr(eeg), 1]
     gamma = s[9, channel, 1:time*sr(eeg), 1]
 
+    return [full, delta, theta, alpha, beta, gamma]
 end
 
 sub_1_ses_1 = datadir("exp_raw", "sub-01", "ses-1", "eeg", "sub-01_ses-1_task-eyesopen_eeg.set");
@@ -146,8 +147,8 @@ fig, axs = axesgrid(1, 2; sharex = true, sharey = true,
     titles = ["Subject $i" for i in 1:2],
 )
 
-bands_idxs = [1, 2, 3, 4, 5]
-band_names = ["δ", "θ", "α", "β", "γ"]
+bands_idxs = [1, 2, 3, 4, 5, 6]
+band_names = ["F", "δ", "θ", "α", "β", "γ"]
 
 for (j, ts) in enumerate((signal_sub_1, signal_sub_2))
     ax = axs[j]
@@ -168,6 +169,4 @@ for (j, ts) in enumerate((signal_sub_1, signal_sub_2))
     ax.xgridvisible = false
 end
 
-display(fig)
-
-# wsave(papersdir("main.png"), fig)
+wsave(papersdir("main.png"), fig)
